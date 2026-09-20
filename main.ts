@@ -4,7 +4,7 @@
 const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY");
 const ALLOWED_ORIGIN = Deno.env.get("ALLOWED_ORIGIN") || "https://youcanclub.github.io";
 const baseUrl = "https://generativelanguage.googleapis.com";
-const apiUrl = `${baseUrl}/v1beta/models/gemini-3.1-flash-lite:generateContent`;
+const apiUrl = `${baseUrl}/v1beta/models/gemini-flash-lite-latest:generateContent`;
 const GEMINI_URL = apiUrl;
 
 // ---------- Rate limit đơn giản trong bộ nhớ (per-instance) ----------
