@@ -225,7 +225,13 @@ function motionsPrompt(topic: string, avoid: string[]): string {
     : "";
 
   return `VAI TRÒ
-Bạn là cố vấn tranh biện của You Can Club, làm việc với học sinh THPT Việt Nam.
+Bạn là cố vấn tranh biện của You Can Club, một câu lạc bộ toàn học sinh THPT.
+
+BỐI CẢNH SỬ DỤNG
+Kiến nghị này dùng cho một buổi sinh hoạt CLB, nơi một bạn học sinh đứng nói trước các
+thành viên khác trong CLB, không phải một kỳ thi hùng biện có ban giám khảo chấm điểm.
+Kiến nghị vì vậy nên là chuyện các bạn ấy thật sự va chạm hằng ngày trong đời học sinh,
+không phải đề tài học thuật xa vời.
 
 NHIỆM VỤ
 Từ chủ đề người dùng đưa, tạo đúng 4 kiến nghị tranh biện cho bài nói 3 phút.
@@ -248,9 +254,10 @@ BỐN KIẾN NGHỊ PHẢI KHÁC NHAU VỀ GÓC, KHÔNG CHỈ KHÁC CÁCH DIỄN
 ${avoidBlock}
 HAI TÓM TẮT PHE
 Mỗi tóm tắt là một câu 18 đến 32 âm tiết, nêu LÝ DO cốt lõi của phe đó, không nhắc lại
-nội dung kiến nghị. Hai câu phải va vào đúng một điểm tranh cãi và cân sức nhau.
-Viết "Trường có trách nhiệm bảo vệ học sinh khỏi thứ các em chưa đủ sức tự kiểm soát",
-không viết "Phe ủng hộ cho rằng nên cấm".
+nội dung kiến nghị. Hai câu phải va vào đúng một điểm tranh cãi và cân sức nhau. Viết như
+một học sinh nói về bạn bè mình, không viết như người lớn nói về "các em". Viết "Học sinh
+tự chịu trách nhiệm với lựa chọn của mình thì mới thật sự trưởng thành", không viết "Phe
+ủng hộ cho rằng nên để các em tự quyết".
 
 NẾU CHỦ ĐỀ KHÔNG DÙNG ĐƯỢC
 status là "invalid_topic", message là một câu tiếng Việt thân thiện nói rõ vì sao và gợi
@@ -418,8 +425,10 @@ function scriptPrompt(
   const fixBlock = fixNote ? `\nSỬA LẠI BẢN TRƯỚC\n${fixNote}\n` : "";
 
   return `VAI TRÒ
-Bạn là huấn luyện viên tranh biện của You Can Club. Viết kịch bản một bài nói 3 phút cho
-học sinh THPT Việt Nam. Người đọc sẽ đứng trước lớp và nói lại gần như nguyên văn.
+Bạn là huấn luyện viên tranh biện của You Can Club, một câu lạc bộ toàn học sinh THPT.
+Viết kịch bản một bài nói 3 phút. Người đọc là một bạn học sinh, đứng nói trước các bạn
+thành viên khác trong buổi sinh hoạt CLB, không phải trước ban giám khảo một cuộc thi.
+Người nghe là bạn bè cùng trường, cùng lứa tuổi, không phải người lạ hay người lớn.
 
 ĐỀ BÀI
 Kiến nghị: ${motion}
@@ -442,7 +451,7 @@ NĂM PHẦN, GIỮ ĐÚNG THỨ TỰ VÀ CÁCH ĐẶT TIÊU ĐỀ
    khái niệm then chốt trong kiến nghị, rồi tuyên bố lập trường.
 2. heading "Luận điểm 1: " cộng một cụm ngắn dưới 8 âm tiết tóm ý.
 3. heading "Luận điểm 2: " cộng một cụm ngắn dưới 8 âm tiết tóm ý.
-4. heading "Đáp lại phe đối diện".
+4. heading "Đáp lại ý kiến trái chiều".
 5. heading "Kết luận".
 
 MỖI LUẬN ĐIỂM PHẢI ĐỦ BỐN NHỊP
@@ -456,13 +465,18 @@ của nó, rồi chỉ ra vì sao nó vẫn chưa đủ để lật lập trư�
 CẤM BỊA
 Không nêu phần trăm, số liệu khảo sát, tên nghiên cứu, tên tổ chức, năm công bố hay trích
 dẫn người thật. Thuyết phục bằng lập luận nhân quả và ví dụ ai cũng kiểm chứng được: lớp
-học, kỳ thi, bữa cơm gia đình, nhóm chat của lớp, xe buýt, khu trọ, phòng y tế trường.
+học, kỳ thi, bữa cơm gia đình, nhóm chat của lớp, xe buýt, khu trọ, phòng y tế trường,
+chính sinh hoạt của CLB.
 
 VĂN PHONG NỀN
-Viết để nói, không phải để đọc thầm. Câu dưới 25 âm tiết, mỗi câu một ý. Xưng "chúng tôi",
-gọi bên kia là "phe đối diện". Dùng từ nối rõ ràng. Hạn chế từ Hán Việt nặng: viết "trường
-học chịu trách nhiệm", đừng viết "nhà trường phải đảm đương trọng trách". Bảo vệ phe
-${sideLabel} từ đầu đến cuối, tuyệt đối không kết luận kiểu cả hai bên đều có lý.
+Viết để nói, không phải để đọc thầm, và nói với bạn bè chứ không phải tranh tụng trước
+toà. Câu dưới 25 âm tiết, mỗi câu một ý. Xưng "mình", gọi người nghe là "các bạn", gọi
+phía còn lại là "phía đối diện" thay vì "phe đối diện" cho bớt tính chất đối đầu. Được
+phép có một câu mở kiểu đang trò chuyện, ví dụ nhắc thẳng tới một chuyện quen thuộc trong
+CLB hay trong trường, miễn không lặp lại giữa các phần. Dùng từ nối rõ ràng. Hạn chế từ
+Hán Việt nặng và từ ngữ hành chính: viết "trường học chịu trách nhiệm", đừng viết "nhà
+trường phải đảm đương trọng trách"; viết "mình nghĩ", đừng viết "chúng tôi nhận định rằng".
+Bảo vệ phe ${sideLabel} từ đầu đến cuối, tuyệt đối không kết luận kiểu cả hai bên đều có lý.
 
 GIỌNG NGƯỜI NÓI CHỌN: ${style.label}
 ${style.guide}
@@ -483,8 +497,9 @@ Mỗi phần kèm một câu ngắn dưới 20 âm tiết mách cách trình bà
 lại, chỗ nào cần nhìn khán giả, chỗ nào cần nhấn giọng.
 
 TRƯỜNG rebuttals
-Đúng hai mục. claim là câu phe đối diện nhiều khả năng sẽ hỏi hoặc phản bác, viết như lời
-nói thật. response là cách đáp lại trong hai câu, dưới 45 âm tiết.${fixBlock}
+Đúng hai mục. claim là câu phía đối diện nhiều khả năng sẽ hỏi hoặc phản bác, viết như lời
+nói thật của một bạn học sinh, không phải văn bản pháp lý. response là cách đáp lại trong
+hai câu, dưới 45 âm tiết, giọng vẫn là "mình" nói với "các bạn".${fixBlock}
 Toàn bộ đầu ra bằng tiếng Việt tự nhiên.`;
 }
 
