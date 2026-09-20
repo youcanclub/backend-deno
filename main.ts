@@ -108,11 +108,15 @@ async function callGemini(
           responseMimeType: "application/json",
           responseSchema: schema,
         },
+        // Đây là bước tạo ý tưởng thô, có một bước rà soát riêng của CLB ở sau, nên nới
+        // ngưỡng chặn cho các đề tài tranh biện hơi gai góc (chính trị học đường, mâu
+        // thuẫn gia đình...) để AI không tự loại bỏ oan những kiến nghị hay. Riêng nội
+        // dung khiêu dâm vẫn giữ ngưỡng chặt vì người dùng là học sinh THPT.
         safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_ONLY_HIGH" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_ONLY_HIGH" },
           { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_ONLY_HIGH" },
         ],
       }),
     });
@@ -230,9 +234,13 @@ const MOTIONS_SCHEMA = {
   propertyOrdering: ["status", "message", "motions"],
 };
 
-function motionsPrompt(topic: string, avoid: string[]): string {
+function motionsPrompt(topic: string, avoid: string[], idea: string): string {
   const avoidBlock = avoid.length
     ? `\nĐÃ DÙNG RỒI, KHÔNG LẶP Ý\n${avoid.map((m) => `- ${m}`).join("\n")}\n`
+    : "";
+
+  const ideaBlock = idea
+    ? `\nĐỊNH HƯỚNG RIÊNG NGƯỜI DÙNG GÕ THÊM (tham khảo, không bắt buộc theo tuyệt đối)\n${idea}\nNếu định hướng này hợp lý thì lồng nó vào ít nhất một trong bốn kiến nghị; nếu nó mơ hồ hoặc khó tranh biện thì cứ tự chọn góc tốt hơn.\n`
     : "";
 
   return `VAI TRÒ
@@ -245,6 +253,12 @@ thành viên khác trong CLB, không phải một kỳ thi hùng biện có ban 
 Kiến nghị vì vậy nên là chuyện các bạn ấy thật sự va chạm hằng ngày trong đời học sinh,
 không phải đề tài học thuật xa vời.
 
+TINH THẦN CHUNG: ƯU TIÊN SÁNG TẠO, ĐỪNG TỰ KIỂM DUYỆT QUÁ TAY
+Đây chỉ là bước tạo ý tưởng thô. Nội dung còn qua một bước rà soát riêng của CLB trước khi
+dùng thật, nên ở đây cứ mạnh dạn chọn góc thú vị, sắc, có chút gai góc nếu nó làm kiến nghị
+hay hơn — đừng vì sợ mà chọn phương án an toàn, nhạt nhẽo, ai cũng đoán được. Chỉ cần đủ phù
+hợp lứa tuổi THPT theo mục 5 dưới đây.
+
 NHIỆM VỤ
 Từ chủ đề người dùng đưa, tạo đúng 4 kiến nghị tranh biện cho bài nói 3 phút.
 
@@ -255,15 +269,18 @@ MỖI KIẾN NGHỊ PHẢI ĐẠT
    thấy ngay bên nào đúng thì bỏ kiến nghị đó đi.
 3. Thắng được bằng lập luận và ví dụ đời sống học đường, không cần số liệu chuyên ngành.
 4. Không dùng từ so sánh mơ hồ nếu chưa nói rõ so với cái gì.
-5. Phù hợp môi trường học đường: không chính trị nhạy cảm, không tôn giáo, không sắc tộc,
-   không bạo lực, không cổ vũ vi phạm nội quy.
+5. Được phép động tới các chủ đề xã hội có tranh cãi thật, kể cả hơi gai góc hay nhạy cảm,
+   miễn còn phù hợp lứa tuổi THPT. Chỉ tránh nội dung khiêu dâm, kích động bạo lực nghiêm
+   trọng, thù ghét nhắm vào một nhóm người cụ thể, hoặc cổ suý trực tiếp hành vi phạm pháp
+   nghiêm trọng. Ngoài phạm vi đó, cứ tự do chọn góc — chính trị học đường, mạng xã hội,
+   gia đình, bản sắc cá nhân... đều dùng được nếu vẫn tranh cãi công bằng được cho cả hai phe.
 
 BỐN KIẾN NGHỊ PHẢI KHÁC NHAU VỀ GÓC, KHÔNG CHỈ KHÁC CÁCH DIỄN ĐẠT
 - Một kiến nghị về chính sách nhà trường.
 - Một kiến nghị về trách nhiệm cá nhân của học sinh.
 - Một kiến nghị về vai trò gia đình hoặc xã hội.
 - Một kiến nghị phải đánh đổi giữa hai điều cùng tốt.
-${avoidBlock}
+${avoidBlock}${ideaBlock}
 HAI TÓM TẮT PHE
 Mỗi tóm tắt là một câu 18 đến 32 âm tiết, nêu LÝ DO cốt lõi của phe đó, không nhắc lại
 nội dung kiến nghị. Hai câu phải va vào đúng một điểm tranh cãi và cân sức nhau. Viết như
@@ -273,7 +290,9 @@ tự chịu trách nhiệm với lựa chọn của mình thì mới thật sự
 
 NẾU CHỦ ĐỀ KHÔNG DÙNG ĐƯỢC
 status là "invalid_topic", message là một câu tiếng Việt thân thiện nói rõ vì sao và gợi
-một chủ đề gần đó, motions là mảng rỗng.
+một chủ đề gần đó, motions là mảng rỗng. Chỉ dùng nhánh này khi chủ đề THẬT SỰ không thể
+tranh biện công bằng được (ví dụ chỉ có một phía hợp lý, hoặc vi phạm mục 5 ở trên) — đừng
+từ chối chỉ vì chủ đề nghe lạ hay hơi nhạy cảm.
 Nếu chủ đề dùng được: status là "ok", message là chuỗi rỗng.
 
 Toàn bộ đầu ra bằng tiếng Việt tự nhiên, giọng của một học sinh, không phải giọng người lớn
@@ -284,7 +303,7 @@ ${topic}`;
 }
 
 async function handleMotions(req: Request): Promise<Response> {
-  let body: { topic?: string; avoid_motions?: string[] };
+  let body: { topic?: string; avoid_motions?: string[]; idea?: string };
   try {
     body = await req.json();
   } catch {
@@ -295,6 +314,7 @@ async function handleMotions(req: Request): Promise<Response> {
   const avoid = Array.isArray(body.avoid_motions)
     ? body.avoid_motions.filter((m) => typeof m === "string").slice(-12)
     : [];
+  const idea = (typeof body.idea === "string" ? body.idea : "").trim().slice(0, 300);
 
   if (topic.length < 3 || topic.length > 100) {
     return json(req, { message: "Chủ đề cần dài từ 3 đến 100 ký tự." }, 400);
@@ -303,7 +323,7 @@ async function handleMotions(req: Request): Promise<Response> {
   try {
     const result = await callWithRetry(
       MODEL_MOTIONS,
-      motionsPrompt(topic, avoid),
+      motionsPrompt(topic, avoid, idea),
       MOTIONS_SCHEMA,
       1.0,          // cần đa dạng góc nhìn, nhiệt độ thấp làm 4 kiến nghị na ná nhau
       2400,
@@ -319,9 +339,9 @@ async function handleMotions(req: Request): Promise<Response> {
 
     const motions = (Array.isArray(result.motions) ? result.motions : [])
       .map((m: Record<string, string>) => ({
-        motion: tidy(m.motion),
-        pro_summary: tidy(m.pro_summary),
-        con_summary: tidy(m.con_summary),
+        motion: neutralizeFormal(tidy(m.motion)),
+        pro_summary: neutralizeFormal(tidy(m.pro_summary)),
+        con_summary: neutralizeFormal(tidy(m.con_summary)),
       }))
       .filter((m: Record<string, string>) => m.motion && m.pro_summary && m.con_summary)
       .slice(0, 4);
@@ -388,6 +408,61 @@ Tránh từ sách vở. Dù giọng nhẹ, lập luận vẫn phải chặt.`,
 
 const DEFAULT_STYLE = "thang-than";
 const getStyle = (key?: string): Style => STYLES[key || ""] || STYLES[DEFAULT_STYLE];
+
+// Lưới an toàn cuối cùng: dù prompt và vòng sửa đã cố hết sức, một mô hình
+// ngôn ngữ vẫn có thể lặp lại lỗi xưng hô trang trọng ở CẢ hai lượt gọi.
+// Hàm này không dựa vào việc "nhắc AI sửa" nữa mà thay thế trực tiếp bằng
+// regex, nên người dùng cuối cùng không bao giờ thấy "hội đồng", "ban giám
+// khảo"... lọt ra màn hình, kể cả khi cả hai lượt gọi Gemini đều sai.
+const FORMAL_REPLACEMENTS: [RegExp, string][] = [
+  [/ban giám khảo/gi, "các bạn"],
+  [/hội đồng/gi, "các bạn"],
+  [/quý vị/gi, "các bạn"],
+  [/kính thưa[^,.\n]{0,40}/gi, ""],
+  [/kính mong/gi, "mong"],
+  [/trân trọng/gi, ""],
+  [/xin phép (được )?trình bày/gi, "mình xin chia sẻ"],
+  [/chúng em xin/gi, "mình xin"],
+  [/\bem xin\b/gi, "mình xin"],
+  [/các em học sinh/gi, "các bạn"],
+  [/thế hệ trẻ/gi, "tụi mình"],
+  [/giới trẻ (ngày nay|hiện nay)/gi, "học sinh bây giờ"],
+  [/chúng tôi (nhận định|cho rằng)/gi, "mình nghĩ"],
+  [/nhận định rằng/gi, "nghĩ rằng"],
+  [/đảm đương trọng trách/gi, "chịu trách nhiệm"],
+  [/trọng trách/gi, "trách nhiệm"],
+  [/thiết nghĩ/gi, "mình nghĩ"],
+  // Phòng khi AI lỡ nhắc số phút cụ thể trong lời thoại — người nghe không
+  // cần biết đây là bài "3 phút", chỉ cần nghe một bài nói trọn vẹn.
+  [/\btrong\s+(3|ba)\s+phút(\s+này)?\b/gi, "trong bài nói này"],
+  [/\b(3|ba)\s+phút\b/gi, "vài phút"],
+];
+
+function neutralizeFormal(text: string): string {
+  let out = String(text || "");
+  for (const [re, rep] of FORMAL_REPLACEMENTS) out = out.replace(re, rep);
+  return out
+    .replace(/[ \t]{2,}/g, " ")
+    .replace(/\s+([,.!?])/g, "$1")
+    .replace(/^[,\s]+/, "")
+    .trim();
+}
+
+// deno-lint-ignore no-explicit-any
+function finalizeScript(s: any) {
+  return {
+    title: neutralizeFormal(s.title),
+    sections: s.sections.map((sec: { heading: string; content: string; tip: string }) => ({
+      heading: neutralizeFormal(sec.heading),
+      content: neutralizeFormal(sec.content),
+      tip: neutralizeFormal(sec.tip),
+    })),
+    rebuttals: (s.rebuttals || []).map((r: { claim: string; response: string }) => ({
+      claim: neutralizeFormal(r.claim),
+      response: neutralizeFormal(r.response),
+    })),
+  };
+}
 
 /* ============================================================
    /api/script
@@ -506,6 +581,13 @@ viết "khó mà", đừng viết "là điều không hề dễ dàng"; tránh h
 nghĩ", "nhận định", "vấn nạn", "thực trạng" — đây toàn là từ của văn nghị luận, không phải
 lời nói miệng. Nối câu bằng từ nói miệng thật sự: "nhưng mà", "thế nên", "vậy thì", "với
 lại", thay vì "tuy nhiên", "bên cạnh đó", "chính vì vậy" lặp đi lặp lại như văn viết.
+
+VÍ DỤ ĐỐI CHIẾU, ĐỂ BẠN CẢM ĐƯỢC ĐÚNG GIỌNG CẦN VIẾT
+Sai, đừng viết như thế này: "Kính thưa quý vị, hôm nay em xin trình bày trước hội đồng về
+vấn nạn áp lực học tập mà thế hệ trẻ đang gặp phải."
+Đúng, hãy viết như thế này: "Chắc nhiều bạn ở đây cũng từng thức tới 1 giờ sáng ôn bài,
+mình cũng vậy, và mình nghĩ chuyện đó có gì đó sai sai."
+Bám sát giọng ở ví dụ "Đúng" cho toàn bộ bài, kể cả khi đổi sang giọng ${style.label}.
 
 Bảo vệ phe ${sideLabel} từ đầu đến cuối, tuyệt đối không kết luận kiểu cả hai bên đều có lý.
 
@@ -631,6 +713,7 @@ async function handleScript(req: Request): Promise<Response> {
       }
     }
 
+    best = finalizeScript(best);
     return json(req, { ...best, style: style.label });
   } catch (err) {
     if (err instanceof BlockedError) {
