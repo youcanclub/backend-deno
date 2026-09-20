@@ -159,14 +159,21 @@ async function callWithRetry(
   maxOutputTokens: number,
   // deno-lint-ignore no-explicit-any
 ): Promise<any> {
-  try {
-    return await callGemini(model, prompt, schema, temperature, maxOutputTokens);
-  } catch (err) {
-    if (err instanceof BlockedError) throw err;
-    console.warn("Gọi lại sau lỗi:", (err as Error).message);
-    await sleep(600);
-    return await callGemini(model, prompt, schema, temperature, maxOutputTokens);
+  // Thử model chính, thử lại một lần, rồi chuyển sang model còn lại nếu Gemini quá tải (503/429).
+  const alt = model === MODEL_SCRIPT ? MODEL_MOTIONS : MODEL_SCRIPT;
+  const order = alt === model ? [model, model] : [model, model, alt];
+  let lastErr: unknown;
+  for (let i = 0; i < order.length; i++) {
+    try {
+      return await callGemini(order[i], prompt, schema, temperature, maxOutputTokens);
+    } catch (err) {
+      if (err instanceof BlockedError) throw err;
+      lastErr = err;
+      console.warn(`Gọi lại sau lỗi (${order[i]}):`, (err as Error).message);
+      if (i < order.length - 1) await sleep(i === 0 ? 800 : 300);
+    }
   }
+  throw lastErr;
 }
 
 /* ============================================================
