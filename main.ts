@@ -192,7 +192,17 @@ function tidy(text: string): string {
 // Dấu hiệu bịa số liệu. Con số trong ví dụ đời thường thì không sao,
 // nhưng phần trăm và "theo nghiên cứu" thì gần như chắc chắn là bịa.
 const FAKE_STAT = /\d{1,3}\s?%|\b(theo|dựa trên)\s+(một\s+)?(nghiên cứu|khảo sát|thống kê|báo cáo|số liệu)/i;
-const FORMAL_ADDRESS = /ban giám khảo|hội đồng|quý vị|kính thưa|thưa (các )?(thầy|cô|anh|chị)/i;
+
+// Mọi dấu hiệu cho thấy AI đang tưởng tượng một khán phòng trang trọng
+// (giám khảo, hội đồng, thầy cô, hay chỉ đơn giản là văn phong quá formal/sách vở)
+// thay vì một buổi sinh hoạt CLB giữa các bạn học sinh với nhau.
+const FORMAL_ADDRESS =
+  /ban giám khảo|hội đồng|quý vị|kính thưa|thưa (các )?(thầy|cô|anh|chị)|kính mong|trân trọng|xin phép (được )?trình bày|em xin|chúng em xin|các em học sinh|thế hệ trẻ|giới trẻ (ngày nay|hiện nay)|xã hội (ngày nay|hiện đại)|chúng tôi (nhận định|cho rằng|kính)|nhận định rằng|đảm đương trọng trách|trọng trách|thiết nghĩ|có thể thấy rằng|như đã (nêu|trình bày|phân tích) ở trên|tóm lại,? có thể nói/i;
+
+// Cụm mở đầu công thức, sáo rỗng kiểu bài văn nghị luận — không ai nói
+// thế này khi đứng lên nói chuyện với bạn bè trong CLB.
+const ESSAY_OPENERS =
+  /^(trong (xã hội|cuộc sống|thời đại) (ngày nay|hiện nay|hiện đại)|từ (xưa )?đến nay|như chúng ta đã biết|có (thể|lẽ) (ai trong chúng ta )?cũng)/i;
 
 /* ============================================================
    /api/motions
@@ -226,7 +236,8 @@ function motionsPrompt(topic: string, avoid: string[]): string {
     : "";
 
   return `VAI TRÒ
-Bạn là cố vấn tranh biện của You Can Club, một câu lạc bộ toàn học sinh THPT.
+Bạn là một bạn học sinh lớp 11 phụ trách mảng tranh biện của You Can Club, một câu lạc bộ
+toàn học sinh THPT. Bạn đang nghĩ đề cho buổi sinh hoạt CLB tuần này, không phải một đề thi.
 
 BỐI CẢNH SỬ DỤNG
 Kiến nghị này dùng cho một buổi sinh hoạt CLB, nơi một bạn học sinh đứng nói trước các
@@ -265,7 +276,8 @@ status là "invalid_topic", message là một câu tiếng Việt thân thiện 
 một chủ đề gần đó, motions là mảng rỗng.
 Nếu chủ đề dùng được: status là "ok", message là chuỗi rỗng.
 
-Toàn bộ đầu ra bằng tiếng Việt tự nhiên.
+Toàn bộ đầu ra bằng tiếng Việt tự nhiên, giọng của một học sinh, không phải giọng người lớn
+viết cho học sinh.
 
 CHỦ ĐỀ
 ${topic}`;
@@ -338,7 +350,7 @@ type Style = { label: string; guide: string; temp: number };
 const STYLES: Record<string, Style> = {
   "thang-than": {
     label: "Thẳng thắn, rõ ràng",
-    temp: 0.7,
+    temp: 0.75,
     guide: `Vào thẳng vấn đề ngay câu đầu, không rào đón. Câu ngắn, động từ mạnh, hạn chế tính
 từ. Mỗi đoạn chốt lại bằng một câu khẳng định gọn. Không dùng ẩn dụ dài dòng, không câu hỏi
 tu từ. Sức nặng đến từ lập luận chứ không từ cách nói.`,
@@ -353,7 +365,7 @@ thật ngoài đời. Cảm xúc đi kèm lập luận, không được thay th�
   },
   "phan-tich": {
     label: "Điềm tĩnh, phân tích",
-    temp: 0.65,
+    temp: 0.7,
     guide: `Giọng bình thản, chặt chẽ, như người đang gỡ một nút thắt. Ưu tiên quan hệ nhân quả,
 nói rõ điều kiện nào thì kết luận đúng và ngoại lệ nằm ở đâu. Dùng cách đặt vấn đề rồi tự trả
 lời. Không cảm thán, không hô hào.`,
@@ -426,10 +438,11 @@ function scriptPrompt(
   const fixBlock = fixNote ? `\nSỬA LẠI BẢN TRƯỚC\n${fixNote}\n` : "";
 
   return `VAI TRÒ
-Bạn là huấn luyện viên tranh biện của You Can Club, một câu lạc bộ toàn học sinh THPT.
-Viết kịch bản một bài nói 3 phút. Người đọc là một bạn học sinh, đứng nói trước các bạn
-thành viên khác trong buổi sinh hoạt CLB, không phải trước ban giám khảo một cuộc thi.
-Người nghe là bạn bè cùng trường, cùng lứa tuổi, không phải người lạ hay người lớn.
+Bạn là một học sinh lớp 12 dày dạn của You Can Club, được các bạn trong CLB nhờ viết hộ
+kịch bản để tập nói. Người sẽ đọc bài này là một bạn học sinh khác, đứng nói trước các bạn
+thành viên còn lại trong một buổi sinh hoạt CLB bình thường — quây quần trong lớp học hoặc
+phòng sinh hoạt, không micro trang trọng, không ban giám khảo, không ai chấm điểm. Người
+nghe là bạn bè cùng trường, cùng lứa tuổi, ngồi dưới nghe rồi sẽ vỗ tay và góp ý thân tình.
 
 ĐỀ BÀI
 Kiến nghị: ${motion}
@@ -469,27 +482,43 @@ dẫn người thật. Thuyết phục bằng lập luận nhân quả và ví d
 học, kỳ thi, bữa cơm gia đình, nhóm chat của lớp, xe buýt, khu trọ, phòng y tế trường,
 chính sinh hoạt của CLB.
 
-VĂN PHONG NỀN
-Viết để nói, không phải để đọc thầm, và nói với bạn bè chứ không phải tranh tụng trước
-toà. Câu dưới 25 âm tiết, mỗi câu một ý. Xưng "mình", gọi người nghe là "các bạn", gọi
-phía còn lại là "phía đối diện" thay vì "phe đối diện" cho bớt tính chất đối đầu. Được
-phép có một câu mở kiểu đang trò chuyện, ví dụ nhắc thẳng tới một chuyện quen thuộc trong
-CLB hay trong trường, miễn không lặp lại giữa các phần. Dùng từ nối rõ ràng. Hạn chế từ
-Hán Việt nặng và từ ngữ hành chính: viết "trường học chịu trách nhiệm", đừng viết "nhà
-trường phải đảm đương trọng trách"; viết "mình nghĩ", đừng viết "chúng tôi nhận định rằng".
+VĂN PHONG NỀN — ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT
+Viết đúng như một bạn học sinh sắp lên nói trước các bạn cùng CLB, không phải một bài văn
+nghị luận xã hội được đọc thành tiếng. Đây là khác biệt lớn nhất cần tránh: bài văn nghị
+luận thì trang trọng, câu dài, nhiều từ Hán Việt; bài nói CLB thì như đang trò chuyện, câu
+ngắn, từ đời thường.
+
+Xưng "mình" (không "tôi", không "chúng tôi" khi nói trực tiếp với khán giả), gọi người
+nghe là "các bạn" hoặc "mọi người", gọi phía còn lại là "phía đối diện". Tuyệt đối không
+dùng bất kỳ hình thức xưng hô nào coi người nghe là một hội đồng chấm điểm hay một đám
+đông xa lạ: không "ban giám khảo", "hội đồng", "quý vị", "kính thưa", "kính mong", "trân
+trọng", "xin phép trình bày", "em xin", "các em học sinh". Người nói và người nghe ngang
+hàng, đều là học sinh, đều xưng "mình" — "mình" không chỉ dùng cho người nói mà cả hai bên.
+
+Câu dưới 22 âm tiết, mỗi câu một ý, không nhồi hai mệnh đề phụ vào một câu. Được phép có
+một câu mở đầu kiểu đang bắt chuyện, ví dụ nhắc thẳng một chuyện quen thuộc trong CLB hay
+trong trường — nhưng đừng lặp kiểu mở này ở nhiều phần. Tuyệt đối không mở đầu bài hay một
+đoạn bằng các câu sáo mòn kiểu văn mẫu: "Trong xã hội ngày nay", "Từ xưa đến nay", "Như
+chúng ta đã biết", "Có thể thấy rằng", "Có lẽ ai trong chúng ta cũng". Hạn chế từ Hán Việt
+nặng và từ ngữ hành chính, sách vở: viết "trường học chịu trách nhiệm", đừng viết "nhà
+trường phải đảm đương trọng trách"; viết "mình nghĩ", đừng viết "chúng tôi nhận định rằng";
+viết "khó mà", đừng viết "là điều không hề dễ dàng"; tránh hẳn các từ "trọng trách", "thiết
+nghĩ", "nhận định", "vấn nạn", "thực trạng" — đây toàn là từ của văn nghị luận, không phải
+lời nói miệng. Nối câu bằng từ nói miệng thật sự: "nhưng mà", "thế nên", "vậy thì", "với
+lại", thay vì "tuy nhiên", "bên cạnh đó", "chính vì vậy" lặp đi lặp lại như văn viết.
+
 Bảo vệ phe ${sideLabel} từ đầu đến cuối, tuyệt đối không kết luận kiểu cả hai bên đều có lý.
 
 GIỌNG NGƯỜI NÓI CHỌN: ${style.label}
 ${style.guide}
 Giọng này phủ lên toàn bài, kể cả câu title và các câu trong tip. Nhưng giọng không được
-phá ngân sách âm tiết, không được bỏ bốn nhịp của luận điểm, và không được vi phạm phần
-cấm bịa ở trên.
+phá ngân sách âm tiết, không được bỏ bốn nhịp của luận điểm, không được vi phạm phần cấm
+bịa, và vẫn phải giữ đúng cách xưng hô ngang hàng "mình" — "các bạn" ở trên.
 
 TUYỆT ĐỐI KHÔNG XUẤT HIỆN TRONG content
 Mốc thời gian dưới mọi hình thức. Ngoặc vuông và ghi chú tông giọng. Nhãn đầu đoạn kiểu
-"Luận điểm 1:". Markdown, dấu sao, emoji. Ghi chú số âm tiết. Không dùng các từ "ban giám
-khảo", "hội đồng", "quý vị", "kính thưa" hay bất kỳ cách xưng hô nào coi người nghe là một
-hội đồng chấm điểm — người nghe luôn là các bạn thành viên CLB, không phải ban giám khảo.
+"Luận điểm 1:". Markdown, dấu sao, emoji. Ghi chú số âm tiết. Bất kỳ từ hay cách xưng hô
+trang trọng nào đã liệt kê ở phần văn phong nền bên trên.
 Mỗi content là văn bản thuần, ngăn đoạn bằng ký tự xuống dòng.
 
 TRƯỜNG title
@@ -503,7 +532,7 @@ TRƯỜNG rebuttals
 Đúng hai mục. claim là câu phía đối diện nhiều khả năng sẽ hỏi hoặc phản bác, viết như lời
 nói thật của một bạn học sinh, không phải văn bản pháp lý. response là cách đáp lại trong
 hai câu, dưới 45 âm tiết, giọng vẫn là "mình" nói với "các bạn".${fixBlock}
-Toàn bộ đầu ra bằng tiếng Việt tự nhiên.`;
+Toàn bộ đầu ra bằng tiếng Việt tự nhiên, giọng nói miệng của một học sinh THPT.`;
 }
 
 // deno-lint-ignore no-explicit-any
@@ -574,7 +603,10 @@ async function handleScript(req: Request): Promise<Response> {
       notes.push("Bản trước có số liệu hoặc nghiên cứu không kiểm chứng được. Bỏ hết, thay bằng ví dụ đời sống học đường.");
     }
     if (FORMAL_ADDRESS.test(joined) || FORMAL_ADDRESS.test(best.title)) {
-      notes.push('Bản trước xưng hô như đang nói trước ban giám khảo hoặc hội đồng. Đây là buổi sinh hoạt CLB, người nghe là các bạn thành viên. Xưng "mình", gọi người nghe là "các bạn", bỏ hết các từ như "ban giám khảo", "hội đồng", "quý vị", "kính thưa".');
+      notes.push('Bản trước xưng hô hoặc dùng từ quá trang trọng/sách vở, như đang nói trước ban giám khảo hoặc viết văn nghị luận, thay vì nói chuyện với bạn bè trong CLB. Xưng "mình", gọi người nghe là "các bạn", câu ngắn, từ đời thường, bỏ hết các từ hành chính và sáo rỗng đã bị cấm.');
+    }
+    if (ESSAY_OPENERS.test(best.sections[0]?.content || "")) {
+      notes.push('Câu mở đầu bị sáo mòn kiểu văn mẫu nghị luận. Viết lại phần Mở đầu bằng một tình huống hoặc câu nói cụ thể, đời thường, không dùng các cụm mở bài kiểu "trong xã hội ngày nay" hay "như chúng ta đã biết".');
     }
 
     if (notes.length) {
@@ -586,10 +618,13 @@ async function handleScript(req: Request): Promise<Response> {
           style.temp,
           4000,
         ));
-        // Chỉ thay nếu bản mới thật sự gần mục tiêu hơn.
+        // Chỉ thay nếu bản mới thật sự gần mục tiêu hơn và không còn vi phạm formal/opener.
         const mid = (TARGET_MIN + TARGET_MAX) / 2;
-        const better = retryRaw.sections.length >= 3 &&
-          Math.abs(totalSyllables(retryRaw) - mid) < Math.abs(count - mid);
+        const retryJoined = retryRaw.sections.map((s: { content: string }) => s.content).join(" ");
+        const retryOk = retryRaw.sections.length >= 3 &&
+          !FORMAL_ADDRESS.test(retryJoined) && !FORMAL_ADDRESS.test(retryRaw.title);
+        const better = retryOk &&
+          Math.abs(totalSyllables(retryRaw) - mid) <= Math.abs(count - mid) + 40;
         if (better) best = retryRaw;
       } catch (e) {
         console.warn("Vòng sửa thất bại, giữ bản đầu:", (e as Error).message);
