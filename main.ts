@@ -192,6 +192,7 @@ function tidy(text: string): string {
 // Dấu hiệu bịa số liệu. Con số trong ví dụ đời thường thì không sao,
 // nhưng phần trăm và "theo nghiên cứu" thì gần như chắc chắn là bịa.
 const FAKE_STAT = /\d{1,3}\s?%|\b(theo|dựa trên)\s+(một\s+)?(nghiên cứu|khảo sát|thống kê|báo cáo|số liệu)/i;
+const FORMAL_ADDRESS = /ban giám khảo|hội đồng|quý vị|kính thưa|thưa (các )?(thầy|cô|anh|chị)/i;
 
 /* ============================================================
    /api/motions
@@ -486,7 +487,9 @@ cấm bịa ở trên.
 
 TUYỆT ĐỐI KHÔNG XUẤT HIỆN TRONG content
 Mốc thời gian dưới mọi hình thức. Ngoặc vuông và ghi chú tông giọng. Nhãn đầu đoạn kiểu
-"Luận điểm 1:". Markdown, dấu sao, emoji. Lời chào ban giám khảo. Ghi chú số âm tiết.
+"Luận điểm 1:". Markdown, dấu sao, emoji. Ghi chú số âm tiết. Không dùng các từ "ban giám
+khảo", "hội đồng", "quý vị", "kính thưa" hay bất kỳ cách xưng hô nào coi người nghe là một
+hội đồng chấm điểm — người nghe luôn là các bạn thành viên CLB, không phải ban giám khảo.
 Mỗi content là văn bản thuần, ngăn đoạn bằng ký tự xuống dòng.
 
 TRƯỜNG title
@@ -569,6 +572,9 @@ async function handleScript(req: Request): Promise<Response> {
     }
     if (FAKE_STAT.test(joined)) {
       notes.push("Bản trước có số liệu hoặc nghiên cứu không kiểm chứng được. Bỏ hết, thay bằng ví dụ đời sống học đường.");
+    }
+    if (FORMAL_ADDRESS.test(joined) || FORMAL_ADDRESS.test(best.title)) {
+      notes.push('Bản trước xưng hô như đang nói trước ban giám khảo hoặc hội đồng. Đây là buổi sinh hoạt CLB, người nghe là các bạn thành viên. Xưng "mình", gọi người nghe là "các bạn", bỏ hết các từ như "ban giám khảo", "hội đồng", "quý vị", "kính thưa".');
     }
 
     if (notes.length) {
