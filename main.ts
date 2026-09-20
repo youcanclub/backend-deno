@@ -61,7 +61,7 @@ async function callGemini(
         maxOutputTokens,
         responseMimeType: "application/json",
         responseSchema: schema,
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingLevel: "minimal" },
       },
       safetySettings: [
         { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE" },
@@ -117,19 +117,19 @@ async function callGeminiWithRetry(
 
 // ---------- /api/motions ----------
 const MOTIONS_SCHEMA = {
-  type: "OBJECT",
+  type: "object",
   properties: {
-    status: { type: "STRING", enum: ["ok", "invalid_topic"] },
-    message: { type: "STRING" },
+    status: { type: "string", enum: ["ok", "invalid_topic"] },
+    message: { type: "string" },
     motions: {
-      type: "ARRAY",
+      type: "array",
       items: {
-        type: "OBJECT",
+        type: "object",
         properties: {
-          id: { type: "INTEGER" },
-          motion: { type: "STRING" },
-          pro_summary: { type: "STRING" },
-          con_summary: { type: "STRING" },
+          id: { type: "integer" },
+          motion: { type: "string" },
+          pro_summary: { type: "string" },
+          con_summary: { type: "string" },
         },
         required: ["id", "motion", "pro_summary", "con_summary"],
       },
@@ -222,16 +222,16 @@ async function handleMotions(req: Request): Promise<Response> {
 
 // ---------- /api/script ----------
 const SCRIPT_SCHEMA = {
-  type: "OBJECT",
+  type: "object",
   properties: {
-    title: { type: "STRING" },
+    title: { type: "string" },
     sections: {
-      type: "ARRAY",
+      type: "array",
       items: {
-        type: "OBJECT",
+        type: "object",
         properties: {
-          heading: { type: "STRING" },
-          content: { type: "STRING" },
+          heading: { type: "string" },
+          content: { type: "string" },
         },
         required: ["heading", "content"],
       },
